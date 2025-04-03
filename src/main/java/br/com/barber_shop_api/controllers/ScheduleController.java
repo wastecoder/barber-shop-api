@@ -32,9 +32,6 @@ public class ScheduleController {
     @PostMapping
     @ResponseStatus(CREATED)
     SaveScheduleResponse save(@RequestBody @Valid SaveScheduleRequest request) {
-        System.out.println("\n\n=============================");
-        System.out.println("Recebido: " + request);
-
         var cliente = new ClientEntity();
         cliente.setId(request.clientId());
 

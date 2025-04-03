@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.time.OffsetDateTime;
@@ -21,6 +22,8 @@ import static org.springframework.http.HttpStatus.*;
 @ControllerAdvice
 public class BarberShopExceptionHandler extends ResponseEntityExceptionHandler {
 
+    // Ocorre quando uma exceção inesperada não tratada cai no sistema
+    // Ex: Qualquer erro que não tenha um tratamento específico neste Handler
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleUncaught(final Exception ex, final WebRequest request) {
         log.error("handleUncaught: ", ex);
@@ -33,6 +36,8 @@ public class BarberShopExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, response, new HttpHeaders(), status, request);
     }
 
+    // Ocorre quando um ou mais campos da requisição falham na validação (@Valid)
+    // Ex: um campo obrigatório está ausente ou um valor inválido foi enviado
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
@@ -56,6 +61,8 @@ public class BarberShopExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, response, headers, BAD_REQUEST, request);
     }
 
+    // Ocorre quando há uma violação de integridade no banco de dados (nesse projeto: UniqueConstraint)0
+    // Ex: tentar inserir um e-mail duplicado que possui uma restrição UNIQUE
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
         log.error("Data integrity violation: ", ex);
@@ -67,6 +74,21 @@ public class BarberShopExceptionHandler extends ResponseEntityExceptionHandler {
                 .build();
 
         return handleExceptionInternal(ex, response, new HttpHeaders(), CONFLICT, request);
+    }
+
+    //Ocorre quando o tipo do parâmetro é inválido
+    //Ex: espera um Long, mas recebe uma String
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<?> handleTypeMismatch(MethodArgumentTypeMismatchException ex, WebRequest request) {
+        log.warn("Type mismatch: {}", ex.getMessage());
+
+        var response = ProblemResponse.builder()
+                .status(BAD_REQUEST.value())
+                .timestamp(OffsetDateTime.now())
+                .message("Parâmetro inválido: " + ex.getName())
+                .build();
+
+        return handleExceptionInternal(ex, response, new HttpHeaders(), BAD_REQUEST, request);
     }
 }
 
